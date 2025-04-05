@@ -1,30 +1,23 @@
 import { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from "react-redux";
-import { RootState, AppDispatch } from "../../store";
-import { loadUser } from "../../features/authSlice";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
+import useAuthGuard from "../../hooks/useAuthGuard";
 import VdotTabs from '../../components/vdot/VdotTabs';
 import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
 
 const VdotTraining = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const user = useSelector((state: RootState) => state.auth.user) as { id: number, name: string } | null;
-  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(loadUser());
-    }
-  }, [dispatch, isAuthenticated]);
+  useAuthGuard(); // 認証チェック
+  const user = useSelector((state: RootState) => state.auth.user);
 
   const [loading, setLoading] = useState(true);
-  const [paceZones, setPaceZones] = useState<Record<string, any>>({});
+  const [paceZones, setPaceZones] = useState<Array<Record<string, Array<Record<string, { lower_pace: string; upper_pace: string }>>>>>([]);
 
   useEffect(() => {
     const fetchUserVdot = async () => {
       if (!user) return;
       try {
-        const response = await fetch(`http://localhost:8000/api/get_user_vdot/${user.id}/`, {
+        const response = await fetch(`http://localhost:8080/api/vdots/value`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           credentials: "include",
@@ -51,11 +44,12 @@ const VdotTraining = () => {
     );
   }
 
-  // ゾーンキー（E, M, T, I, R）を取得
-  const zoneKeys = Object.keys(paceZones);
+  // 距離のヘッダーは最初のゾーンから取り出す
+  const firstZoneObj = paceZones[0];
+  const firstZoneKey = Object.keys(firstZoneObj)[0]; // 例: "E"
+  const firstDistanceArray = firstZoneObj[firstZoneKey]; // 配列
 
-  // 距離キー（1mi, 1200m, ...）を取得（Eペースのデータを基準にする）
-  const distanceKeys = zoneKeys.length > 0 ? Object.keys(paceZones["E"] ?? {}) : [];
+  const distanceKeys = firstDistanceArray.map((entry) => Object.keys(entry)[0]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -74,24 +68,29 @@ const VdotTraining = () => {
               </tr>
             </thead>
             <tbody>
-              {zoneKeys.map((zone) => (
-                <tr key={zone}>
-                  <td className="border border-gray-400 px-4 py-2">{zone}</td>
-                  {distanceKeys.map((distance) => {
-                    const paceData = paceZones[zone]?.[distance];
+            {paceZones.map((zoneObj) => {
+                const zone = Object.keys(zoneObj)[0]; // "E", "M", ...
+                const distanceArray = zoneObj[zone]; // 距離の配列
 
-                    return (
-                      <td key={`${zone}-${distance}`} className="border border-gray-400 px-4 py-2">
-                        {paceData
-                          ? zone === "E"
-                            ? `${paceData.lower_pace} ~ ${paceData.upper_pace}` // Eの場合はlower_pace ~ upper_pace
-                            : `${paceData.lower_pace}` // E以外はlower_paceのみ
-                          : "-"}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                return (
+                  <tr key={zone}>
+                    <td className="border border-gray-400 px-4 py-2">{zone}</td>
+                    {distanceArray.map((entry) => {
+                      const distance = Object.keys(entry)[0];
+                      const paceData = entry[distance];
+                      return (
+                        <td key={`${zone}-${distance}`} className="border border-gray-400 px-4 py-2">
+                          {paceData
+                            ? zone === "E"
+                              ? `${paceData.lower_pace} ~ ${paceData.upper_pace}`
+                              : `${paceData.lower_pace}`
+                            : "-"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
