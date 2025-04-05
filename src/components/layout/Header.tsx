@@ -56,9 +56,6 @@ const Header = () => {
                   <Link to="/profile" className="block px-4 py-2 hover:bg-gray-200">
                     プロフィール
                   </Link>
-                  <Link to="/change-password" className="block px-4 py-2 hover:bg-gray-200">
-                    パスワード変更
-                  </Link>
                   <button
                     onClick={logout}
                     className="block w-full text-left px-4 py-2 hover:bg-gray-200"
