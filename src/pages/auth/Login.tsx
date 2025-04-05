@@ -18,6 +18,7 @@ const Login = () => {
       await login(email, password);
       navigate("/dashboard");
     } catch (err) {
+      console.error(err);
       setError("ログインに失敗しました。メールアドレスまたはパスワードが間違っています。");
     }
   };

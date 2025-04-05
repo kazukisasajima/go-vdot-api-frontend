@@ -65,8 +65,8 @@ const Header = () => {
                   >
                     ログアウト
                   </button>
-                  <Link to="/vdot-training" className="block px-4 py-2 hover:bg-gray-200">
-                    vdot-training
+                  <Link to="/vdot-formula" className="block px-4 py-2 hover:bg-gray-200">
+                    vdot計算
                   </Link>
                 </div>
               )}

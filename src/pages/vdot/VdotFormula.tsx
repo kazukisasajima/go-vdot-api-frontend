@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState, AppDispatch } from "../../store";
-import { loadUser } from "../../features/authSlice";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
 import VdotTabs from '../../components/vdot/VdotTabs';
+import useAuthGuard from "../../hooks/useAuthGuard";
 import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
+import { apiClientAuth } from "../../services/authAPI";
 
 
 const DISTANCES = [
@@ -26,23 +27,14 @@ const DISTANCES = [
 
 
 const VdotFormula = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const user = useSelector((state: RootState) => state.auth.user) as { id: number ,name: string } | null;
-  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  useAuthGuard(); // 認証チェック
+  const user = useSelector((state: RootState) => state.auth.user);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(loadUser());
-    }
-  }, [dispatch, isAuthenticated]);
-
-	const [correction, setCorrection] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [hasVdot, setHasVdot] = useState(false); // DBにVdotデータがあるかを判定
 	const [vdotData, setVdotData] = useState<{
 		id: number | null;
-		user_id: number | null;
-		distance_value: string;
+		distance_value: number;
 		distance_unit: string;
 		elevation: number | null;
 		temperature: number | null;
@@ -50,25 +42,13 @@ const VdotFormula = () => {
 		pace: { mm: string; ss: string; unit: string };
 	}>({
 		id: null,
-		user_id: null, // 初期値をnullとして型を明示
-		distance_value: "",
+		distance_value: 0,
 		distance_unit: "",
 		elevation: null,
 		temperature: null,
 		time: { hh: "00", mm: "00", ss: "00" },
 		pace: { mm: "", ss: "", unit: "km" },
 	});
-
-// user のデータ取得後に処理
-useEffect(() => {
-  if (user) {
-    setVdotData((prevData) => ({
-      ...prevData,
-      user_id: user.id, // number 型を代入
-    }));
-    setLoading(false); // user 取得完了後にローディング終了
-  }
-}, [user]);
 
 	// TODO コンポーネントごとにAPIとやり取りするのはいまいちなので、
 	// 認証や情報の取得は一つのコンポーネントでやるようにする
@@ -78,47 +58,54 @@ useEffect(() => {
     const fetchVdotData = async () => {
       if (!user) return;
       try {
-        const response = await fetch(`http://localhost:8000/api/vdots`, {
+        const response = await fetch(`http://localhost:8080/api/vdots`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
         });
+  
+        if (!response.ok) {
+          throw new Error("APIリクエスト失敗");
+        }
+  
+        const vdot = await response.json();
+        console.log("vdot", vdot);
+  
+        const [hh, mm, ss] = vdot.time.split(":");
 
-        const data = await response.json();
-				console.log("data", data);
-
-				if (Array.isArray(data) && data.length > 0) {
-					const vdot = data[0]; // 取得したデータの最初の要素を取得
-					const [hh, mm, ss] = vdot.time.split(":"); // "00:17:45" → ["00", "17", "45"]
-
-					setVdotData(prevData => ({
-							...prevData,
-							...vdot,
-							time: { hh, mm, ss }, // timeをオブジェクトに変換
-					}));
-
-					setHasVdot(true);
-			} else {
-					setHasVdot(false);
-			}
+        setVdotData((prevData) => ({
+          ...prevData,
+          id: vdot.id,
+          distance_value: Number(vdot.distance_value),
+          distance_unit: vdot.distance_unit,
+          time: { hh, mm, ss },
+          elevation: vdot.elevation,
+          temperature: vdot.temperature,
+        }));
+               
+        setHasVdot(true);
       } catch (error) {
         console.error("Vdotデータの取得に失敗しました:", error);
+        setHasVdot(false);
+      } finally {
+        setLoading(false);
       }
     };
-
+  
     fetchVdotData();
-  }, [user]);
+  }, []);
+  // }, [user]);
 
   const handleDistanceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedDistance = DISTANCES.find((d) => d.value.toString() === e.target.value);
+    const selectedDistance = DISTANCES.find((d) => d.value === Number(e.target.value));
     if (selectedDistance) {
       setVdotData({
         ...vdotData,
-        distance_value: selectedDistance.value.toString(),
+        distance_value: selectedDistance.value,
         distance_unit: selectedDistance.unit,
       });
     }
-  };
+  };  
 
   const handleTimeChange = (key: "hh" | "mm" | "ss", value: string) => {
     setVdotData({
@@ -193,7 +180,7 @@ useEffect(() => {
   const resetForm = () => {
     setVdotData({
       ...vdotData,
-      distance_value: "",
+      distance_value: 0,
       distance_unit: "",
       time: { hh: "00", mm: "00", ss: "00" },
       pace: { mm: "", ss: "", unit: "km" },
@@ -204,37 +191,37 @@ useEffect(() => {
   const saveVdot = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!user) return;
-
-    const timeString = `${vdotData.time.hh}:${vdotData.time.mm}:${vdotData.time.ss}`;
-
-    // vdotData のコピーを作成して pace を削除
+  
+    const timeString = `${vdotData.time.hh.padStart(2, "0")}:${vdotData.time.mm.padStart(2, "0")}:${vdotData.time.ss.padStart(2, "0")}`;
+  
     const { pace, ...requestData } = {
-			...vdotData,
-			time: timeString,
-	};
-
-		console.log("requestData", requestData);
-		console.log("hasVdot", hasVdot);
-		console.log("vdotData.id", vdotData.id);
-
+      ...vdotData,
+      distance_value: Number(vdotData.distance_value),
+      time: timeString,
+    };
+  
+    console.log("requestData", requestData);
+    console.log("hasVdot", hasVdot);
+    console.log("vdotData.id", vdotData.id);
+  
     try {
       const method = hasVdot ? "PATCH" : "POST";
-			const url = hasVdot 
-			? `http://localhost:8000/api/vdots/${vdotData.id}/` // `id` を URL に含める
-			: `http://localhost:8000/api/vdots/`;
-
-      const response = await fetch(url, {
+      const url = hasVdot
+        ? `http://localhost:8080/api/vdots/${vdotData.id}` // `id` を URL に含める
+        : `http://localhost:8080/api/vdots`;
+  
+      const response = await apiClientAuth({
         method: method,
-        headers: { "Content-Type": "application/json" },
-        credentials: 'include',
-        body: JSON.stringify(requestData),
+        url: url,
+        data: requestData,
       });
 
-      if (!response.ok) {
+      if (response.status === 200 || response.status === 201) {
+        console.log("Vdotデータを保存しました:", response.data);
+      } else {
+        console.error("エラー詳細:", response.data);
         throw new Error("データの保存に失敗しました");
       }
-
-      console.log("Vdotデータを保存しました:", requestData);
     } catch (error) {
       console.error("Vdotデータの保存に失敗しました:", error);
     }
@@ -253,7 +240,7 @@ useEffect(() => {
       <Header />
       <VdotTabs />
       <div>
-        <h1 className="text-4xl mb-4">VDOTトレーニング</h1>
+        <h1 className="text-4xl mb-4">VDOT計算式</h1>
         <div className="flex flex-col items-center justify-center h-screen">
           <form className="w-1/3">
             <div className="mb-4">
@@ -296,7 +283,6 @@ useEffect(() => {
 									</select>
 								</div>
 							</div>
-
 
               <button type="button" onClick={vdotData.time.hh=="00" && vdotData.time.mm=="00" && vdotData.time.hh=="00"?  calculateTime: calculatePace} className="bg-blue-500 text-white px-4 py-2 rounded mt-2">計算する</button>
               <button type="button" onClick={saveVdot} className="bg-green-500 text-white px-4 py-2 rounded mt-2">送信する</button>
