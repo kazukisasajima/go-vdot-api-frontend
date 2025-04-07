@@ -7,6 +7,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import VdotEquivalent from "../pages/vdot/VdotEquivalent";
 import VdotFormula from "../pages/vdot/VdotFormula";
 import VdotTraining from "../pages/vdot/VdotTraining";
+import Workout from "../pages/workout/Workout";
 
 const AppRoutes = () => {
   return (
@@ -21,6 +22,7 @@ const AppRoutes = () => {
           <Route path="/vdot-equivalent" element={<VdotEquivalent />} />
           <Route path="/vdot-formula" element={<VdotFormula />} />
           <Route path="/vdot-training" element={<VdotTraining />} />
+          <Route path="/workout" element={<Workout />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -56,15 +56,18 @@ const Header = () => {
                   <Link to="/profile" className="block px-4 py-2 hover:bg-gray-200">
                     プロフィール
                   </Link>
+                  <Link to="/vdot-formula" className="block px-4 py-2 hover:bg-gray-200">
+                    vdot計算
+                  </Link>
+                  <Link to="/workout" className="block px-4 py-2 hover:bg-gray-200">
+                    ワークアウト
+                  </Link>
                   <button
                     onClick={logout}
                     className="block w-full text-left px-4 py-2 hover:bg-gray-200"
                   >
                     ログアウト
                   </button>
-                  <Link to="/vdot-formula" className="block px-4 py-2 hover:bg-gray-200">
-                    vdot計算
-                  </Link>
                 </div>
               )}
             </div>
