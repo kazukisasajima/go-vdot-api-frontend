@@ -22,6 +22,6 @@ export const createWorkout = async (workout: Workout) => {
 };
 
 export const updateWorkout = async (id: number, workout: Workout) => {
-  const res = await apiClientAuth.put(`/api/workouts/${id}`, workout);
+  const res = await apiClientAuth.patch(`/api/workouts/${id}`, workout);
   return res.data;
 };
