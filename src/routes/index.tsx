@@ -8,7 +8,7 @@ import VdotEquivalent from "../pages/vdot/VdotEquivalent";
 import VdotFormula from "../pages/vdot/VdotFormula";
 import VdotTraining from "../pages/vdot/VdotTraining";
 import Workout from "../pages/workout/Workout";
-
+import SpecialtyEvent from "../pages/specialty_event/SpecialtyEvent";
 const AppRoutes = () => {
   return (
     <BrowserRouter>
@@ -23,6 +23,7 @@ const AppRoutes = () => {
           <Route path="/vdot-formula" element={<VdotFormula />} />
           <Route path="/vdot-training" element={<VdotTraining />} />
           <Route path="/workout" element={<Workout />} />
+          <Route path="/specialty-event" element={<SpecialtyEvent />} />
         </Route>
       </Routes>
     </BrowserRouter>

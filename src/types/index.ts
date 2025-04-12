@@ -24,3 +24,11 @@ export interface Workout {
   mileage_unit: string;
   weather: string;
 }
+
+export interface SpecialtyEvent {
+  id: number;
+  event_name: string;
+  best_time: string;
+  recorded_at: string;
+  deleted_at: string | null;
+}

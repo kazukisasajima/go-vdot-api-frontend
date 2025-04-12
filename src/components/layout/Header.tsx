@@ -62,6 +62,9 @@ const Header = () => {
                   <Link to="/workout" className="block px-4 py-2 hover:bg-gray-200">
                     ワークアウト
                   </Link>
+                  <Link to="/specialty-event" className="block px-4 py-2 hover:bg-gray-200">
+                    自己ベスト
+                  </Link>
                   <button
                     onClick={logout}
                     className="block w-full text-left px-4 py-2 hover:bg-gray-200"
